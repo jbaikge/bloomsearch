@@ -34,8 +34,11 @@ func restoreFilters(name string) (err error) {
 	if err != nil {
 		return
 	}
-	gob.NewDecoder(f).Decode(&filters)
-	f.Close()
+	defer f.Close()
+	err = gob.NewDecoder(f).Decode(&filters)
+	if err != nil {
+		return
+	}
 	log.Printf("Done")
 	return
 }
@@ -46,8 +49,11 @@ func saveFilters(name string) (err error) {
 	if err != nil {
 		return
 	}
-	gob.NewEncoder(f).Encode(&filters)
-	f.Close()
+	defer f.Close()
+	err = gob.NewEncoder(f).Encode(&filters)
+	if err != nil {
+		return
+	}
 	log.Println("Done")
 	return
 }
@@ -61,7 +67,7 @@ func storeFile(f *os.File, err error) {
 	filter := sbloom.NewFilter(fnv.New64(), 10)
 
 	b := make([]byte, 1)
-	word := make([]byte, 64)
+	word := make([]byte, 0, 64)
 	for {
 		if _, err := f.Read(b); err != nil {
 			break
