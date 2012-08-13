@@ -8,8 +8,10 @@ import (
 	"os"
 )
 
+const probability = 10
+
 var (
-	filter         *sbloom.Filter
+	filters        map[string]sbloom.Filter
 	filterFilename string
 	searchMode     bool
 )
@@ -23,6 +25,10 @@ func storeFile(f *os.File, err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer f.Close()
+
+	filters[f.Name()] = *sbloom.NewFilter(fnv.New64(), 10)
+
 	b := make([]byte, 1)
 	word := make([]byte, 64)
 	for {
@@ -39,7 +45,8 @@ func main() {
 	log.Printf("Search Mode: %v", searchMode)
 	log.Printf("Args:        %+v", flag.Args())
 
-	filter = sbloom.NewFilter(fnv.New64(), 10)
+	filters = make(map[string]sbloom.Filter)
+	//sbloom.NewFilter(fnv.New64(), 10)
 
 	switch {
 	case searchMode:
