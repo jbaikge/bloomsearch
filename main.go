@@ -51,11 +51,6 @@ func main() {
 	switch {
 	case searchMode:
 		log.Println("Unimplemented")
-	case len(flag.Args()) == 0:
-		fallthrough
-	case flag.Arg(0) == "-":
-		log.Println("Reading from STDIN")
-		storeFile(os.Stdin, nil)
 	case len(flag.Args()) > 0:
 		for _, f := range flag.Args() {
 			storeFile(os.Open(f))
