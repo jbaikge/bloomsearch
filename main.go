@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/gob"
 	"flag"
 	"github.com/zeebo/sbloom"
 	"hash/fnv"
@@ -24,6 +25,31 @@ var (
 func init() {
 	flag.StringVar(&filterFilename, "f", "/tmp/BloomFilterStore", "Filename to read and store the filter state")
 	flag.BoolVar(&searchMode, "s", false, "Whether arguments are search terms or files to store")
+}
+
+func restoreFilters(name string) (err error) {
+	log.Printf("Loading previous gob from %s", name)
+	// Attempt to read in the previous filters
+	f, err := os.Open(name)
+	if err != nil {
+		return
+	}
+	gob.NewDecoder(f).Decode(&filters)
+	f.Close()
+	log.Printf("Done")
+	return
+}
+
+func saveFilters(name string) (err error) {
+	log.Printf("Saving gob to %s", name)
+	f, err := os.Create(name)
+	if err != nil {
+		return
+	}
+	gob.NewEncoder(f).Encode(&filters)
+	f.Close()
+	log.Println("Done")
+	return
 }
 
 func storeFile(f *os.File, err error) {
@@ -49,7 +75,6 @@ func storeFile(f *os.File, err error) {
 		case bytes.Contains(accept, b):
 			word = append(word, b[0])
 		}
-		log.Printf("Letter/word: %s/%s", b, word)
 	}
 	filters[f.Name()] = *filter
 }
@@ -58,10 +83,13 @@ func main() {
 	flag.Parse()
 	log.Printf("Filter File: %s", filterFilename)
 	log.Printf("Search Mode: %v", searchMode)
-	log.Printf("Args:        %+v", flag.Args())
+	log.Printf("Args Length: %+v", len(flag.Args()))
 
 	filters = make(map[string]sbloom.Filter)
-	//sbloom.NewFilter(fnv.New64(), 10)
+
+	if err := restoreFilters(filterFilename); err != nil {
+		log.Printf("Could not restore filters: %s; Continuing with blank filter list", err)
+	}
 
 	switch {
 	case searchMode:
@@ -69,6 +97,10 @@ func main() {
 	case len(flag.Args()) > 0:
 		for _, f := range flag.Args() {
 			storeFile(os.Open(f))
+		}
+		if err := saveFilters(filterFilename); err != nil {
+			log.Fatalf("Could not save filters: %s", err)
+			os.Exit(1)
 		}
 	}
 }
