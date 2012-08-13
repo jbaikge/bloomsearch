@@ -20,11 +20,19 @@ var (
 	filterFilename string
 	searchMode     bool
 	wordbreaks     = []byte("\n\r ")
+	lowerMap       [256]byte
 )
 
 func init() {
 	flag.StringVar(&filterFilename, "f", "/tmp/BloomFilterStore", "Filename to read and store the filter state")
 	flag.BoolVar(&searchMode, "s", false, "Whether arguments are search terms or files to store")
+	for i := byte(1); i > 0; i++ {
+		if 'A' <= i && i <= 'Z' {
+			lowerMap[i] = 'a' + (i - 'A')
+		} else {
+			lowerMap[i] = i
+		}
+	}
 }
 
 func restoreFilters(name string) (err error) {
@@ -76,13 +84,20 @@ func storeFile(f *os.File, err error) {
 		// Store a word on a break
 		case bytes.Contains(wordbreaks, b):
 			filter.Add(word)
-			filter.Add(bytes.ToLower(word))
+			toLower(word)
+			filter.Add(word)
 			word = word[:0]
 		case bytes.Contains(accept, b):
 			word = append(word, b[0])
 		}
 	}
 	filters[f.Name()] = *filter
+}
+
+func toLower(p []byte) {
+	for i, v := range p {
+		p[i] = lowerMap[v]
+	}
 }
 
 func main() {
