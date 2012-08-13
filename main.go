@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"flag"
+	"fmt"
 	"github.com/zeebo/sbloom"
 	"hash/fnv"
 	"log"
@@ -66,6 +67,20 @@ func saveFilters(name string) (err error) {
 	return
 }
 
+func search(words ...string) (files []string) {
+	var found bool
+	for f, filter := range filters {
+		found = true
+		for _, w := range words {
+			found = found && filter.Lookup([]byte(w))
+		}
+		if found {
+			files = append(files, f)
+		}
+	}
+	return
+}
+
 func storeFile(f *os.File, err error) {
 	if err != nil {
 		log.Fatal(err)
@@ -114,7 +129,11 @@ func main() {
 
 	switch {
 	case searchMode:
-		log.Println("Unimplemented")
+		log.Println("Searching...")
+		for i, f := range search(flag.Args()...) {
+			fmt.Printf("% 4d. %s\n", i+1, f)
+		}
+		log.Println("Done.")
 	case len(flag.Args()) > 0:
 		for _, f := range flag.Args() {
 			storeFile(os.Open(f))
