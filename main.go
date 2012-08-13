@@ -48,6 +48,7 @@ func restoreFilters(name string) (err error) {
 	if err != nil {
 		return
 	}
+	log.Printf("Loaded %d file filters", len(filters))
 	log.Printf("Done")
 	return
 }
